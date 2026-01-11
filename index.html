@@ -1,594 +1,679 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Card Creator</title>
-  <!-- UTIF.js for TIFF support -->
-  <script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Card Creator</title>
+    <!-- UTIF.js for TIFF support -->
+    <script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --paper-color: #ffffff;
+            --line-color: #94a3b8; /* Darker for better print visibility */
+            --primary-color: #2563eb;
+            --danger-color: #ef4444;
+            --handle-color: #3b82f6;
+        }
 
-  <style>
-    :root {
-      --bg-color: #f0f2f5;
-      --paper-color: #ffffff;
-      --line-color: #cbd5e1;
-      --primary-color: #2563eb;
-      --danger-color: #ef4444;
-      --handle-color: #3b82f6;
-    }
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Prevent text selection while dragging */
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    * {
-      box-sizing: border-box;
-      user-select: none; /* Prevent text selection while dragging */
-    }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-    body {
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
+        /* --- UI Controls --- */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            max-width: 90vw;
+        }
 
-    /* --- UI Controls --- */
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      display: flex;
-      gap: 15px;
-      z-index: 1000;
-      align-items: center;
-      flex-wrap: wrap; /* Allow wrapping on small screens */
-      justify-content: flex-end;
-    }
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            gap: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
 
-    .input-group {
-      display: flex;
-      align-items: center;
-      background: white;
-      padding: 8px 16px;
-      border-radius: 50px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      gap: 10px;
-      font-weight: 600;
-      color: #333;
-      font-size: 14px;
-    }
+        .input-group input {
+            width: 50px;
+            padding: 4px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
 
-    .input-group input {
-      width: 50px;
-      padding: 4px;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      text-align: center;
-      font-size: 14px;
-    }
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
 
-    .btn {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15);
+        }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15);
-    }
+        .btn:active {
+            transform: translateY(0);
+        }
 
-    .btn:active {
-      transform: translateY(0);
-    }
+        .btn.print-btn {
+            background-color: #059669;
+        }
+        
+        .btn.auto-btn {
+            background-color: #7c3aed;
+        }
 
-    .btn.print-btn {
-      background-color: #059669;
-    }
+        #fileInput {
+            display: none;
+        }
 
-    #fileInput {
-      display: none;
-    }
+        .instructions {
+            margin-bottom: 20px;
+            color: #64748b;
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 0 20px;
+        }
 
-    .instructions {
-      margin-bottom: 20px;
-      color: #64748b;
-      text-align: center;
-      font-size: 0.9rem;
-    }
+        /* --- A4 Paper Layout --- */
+        .page-container {
+            width: 210mm;
+            height: 297mm;
+            background: var(--paper-color);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
-    /* --- A4 Paper Layout --- */
-    .page-container {
-      width: 210mm;
-      height: 297mm;
-      background: var(--paper-color);
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
+        /* 3/4 Image Area */
+        .image-zone {
+            flex: 1; 
+            width: 100%;
+            position: relative;
+            border-bottom: 2px solid #000;
+            overflow: hidden; 
+        }
 
-    /* 3/4 Image Area */
-    .image-zone {
-      /* height: 75%;  Removed fixed height */
-      flex: 1; /* Takes up all remaining space */
-      width: 100%;
-      position: relative;
-      border-bottom: 2px solid #000;
-      overflow: hidden; /* Images stay inside */
-    }
+        /* 1/4 Writing Area */
+        .writing-zone {
+            width: 100%;
+            /* Padding handled by logic now to align borders */
+            padding: 20px 20px 0 20px; 
+            flex-shrink: 0; 
+            transition: height 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Real DOM elements for lines to ensure printing */
+        .line-item {
+            width: 100%;
+            border-bottom: 1.5px solid var(--line-color);
+            flex-shrink: 0;
+            /* Height set by JS */
+        }
 
-    /* 1/4 Writing Area */
-    .writing-zone {
-      /* height: 25%; Removed fixed height */
-      width: 100%;
-      padding: 20px;
-      /* Background lines handled by JS */
-      background-repeat: repeat-y;
-      flex-shrink: 0; /* Prevents it from squishing if lines are added */
-      transition: height 0.3s ease; /* Smooth resizing animation */
-    }
+        /* --- Draggable Image Element --- */
+        .draggable-item {
+            position: absolute;
+            cursor: move;
+            display: inline-block;
+            min-width: 50px;
+            min-height: 50px;
+            touch-action: none;
+        }
 
-    /* --- Draggable Image Element --- */
-    .draggable-item {
-      position: absolute;
-      cursor: move;
-      display: inline-block;
-      min-width: 50px;
-      min-height: 50px;
-      /* Default starting size/pos set by JS */
-      touch-action: none; /* Crucial for touch events */
-    }
+        .draggable-item.active {
+            z-index: 100 !important;
+        }
 
-    .draggable-item:hover {
-      outline: 2px dashed var(--primary-color);
-    }
+        .draggable-item:hover, .draggable-item.active {
+            outline: 2px dashed var(--primary-color);
+        }
 
-    .draggable-item img {
-      width: 100%;
-      height: auto;
-      display: block;
-      pointer-events: none; /* Let clicks pass to container */
-    }
+        .draggable-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none; 
+        }
 
-    .image-caption {
-      font-size: 12px;
-      text-align: center;
-      margin-top: 4px;
-      font-weight: 500;
-      color: #000;
-      word-break: break-all;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
+        .image-caption {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 4px;
+            font-weight: 500;
+            color: #000;
+            word-break: break-all;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
 
-    /* Resize Handle */
-    .resize-handle {
-      width: 15px;
-      height: 15px;
-      background-color: var(--handle-color);
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      cursor: nwse-resize;
-      border-radius: 50% 0 50% 0;
-      display: none; /* Hidden unless hovered */
-      z-index: 10;
-    }
+        /* Resize Handle - Made larger for Mobile */
+        .resize-handle {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            cursor: nwse-resize;
+            display: none; 
+            z-index: 20;
+            touch-action: none; /* Critical for mobile */
+        }
+        
+        /* Visual part of the handle */
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--handle-color);
+            border-radius: 50%;
+            box-shadow: 0 0 2px white;
+        }
 
-    .draggable-item:hover .resize-handle {
-      display: block;
-    }
+        .draggable-item:hover .resize-handle, 
+        .draggable-item.active .resize-handle {
+            display: block;
+        }
 
-    /* Delete Button */
-    .delete-btn {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 24px;
-      height: 24px;
-      background: var(--danger-color);
-      color: white;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      display: none;
-      z-index: 11;
-      font-size: 14px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
+        /* Delete Button */
+        .delete-btn {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 28px;
+            height: 28px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            z-index: 21;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-    .draggable-item:hover .delete-btn {
-      display: block;
-    }
+        .draggable-item:hover .delete-btn,
+        .draggable-item.active .delete-btn {
+            display: block;
+        }
 
-    /* --- Print Styles --- */
-    @media print {
-      body {
-        background: none;
-        margin: 0;
-        padding: 0;
-        display: block;
-      }
+        /* --- Print Styles --- */
+        @media print {
+            body {
+                background: none;
+                margin: 0;
+                padding: 0;
+                display: block;
+                min-height: auto;
+            }
 
-      .controls, .instructions {
-        display: none !important;
-      }
+            .controls, .instructions {
+                display: none !important;
+            }
 
-      .page-container {
-        box-shadow: none;
-        margin: 0;
-        width: 210mm; /* Force A4 dimensions */
-        height: 297mm;
-        page-break-after: always;
-      }
+            .page-container {
+                box-shadow: none;
+                margin: 0;
+                width: 210mm; 
+                height: 297mm;
+                page-break-after: always;
+                border: none;
+            }
 
-      .draggable-item:hover {
-        outline: none;
-      }
+            .draggable-item {
+                outline: none !important;
+            }
+            
+            .resize-handle, .delete-btn {
+                display: none !important;
+            }
+            
+            /* Ensure borders print */
+            .line-item {
+                border-bottom-color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
 
-      .resize-handle, .delete-btn {
-        display: none !important;
-      }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
 
-      @page {
-        size: A4;
-        margin: 0;
-      }
-    }
+        /* --- Mobile Responsiveness --- */
+        @media screen and (max-width: 850px) {
+            .page-container {
+                transform-origin: top center;
+                transform: scale(0.45); 
+                margin-bottom: -150mm; 
+            }
+            
+            body {
+                padding: 10px;
+                padding-bottom: 100px; /* Space for controls */
+                overflow-x: hidden;
+            }
 
-    /* --- Mobile Responsiveness --- */
-    @media screen and (max-width: 850px) {
-      .page-container {
-        /* Scale down visual representation but keep internal mm units valid */
-        transform-origin: top center;
-        transform: scale(0.45); /* Adjust based on viewport needed */
-        margin-bottom: -140mm; /* Compensate for empty space after scaling */
-      }
-
-      /* On very small screens, let users scroll horizontally or just scale more */
-      body {
-        padding: 10px;
-        overflow-x: hidden;
-      }
-
-      .controls {
-        width: 100%;
-        justify-content: center;
-        bottom: 10px;
-        right: 0;
-        padding: 0 10px;
-      }
-
-      .btn {
-        padding: 10px 16px;
-        font-size: 14px;
-      }
-
-      .input-group {
-        padding: 6px 12px;
-      }
-    }
-
-    @media screen and (min-width: 851px) and (max-width: 1024px) {
-      .page-container {
-        transform: scale(0.7);
-        margin-bottom: -80mm;
-      }
-    }
-  </style>
+            .controls {
+                width: 100%;
+                bottom: 0;
+                right: 0;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.95);
+                border-top: 1px solid #ddd;
+                justify-content: space-around;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                flex: 1;
+                justify-content: center;
+            }
+            
+            .input-group {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            /* Always show handles on mobile to avoid hover issues */
+            .draggable-item .resize-handle {
+                display: block;
+                opacity: 0; /* Hidden but clickable until tapped */
+            }
+            .draggable-item.active .resize-handle {
+                opacity: 1;
+            }
+            .draggable-item.active .delete-btn {
+                display: block;
+            }
+        }
+        
+        @media screen and (min-width: 851px) and (max-width: 1024px) {
+             .page-container {
+                transform: scale(0.7);
+                margin-bottom: -80mm;
+             }
+        }
+    </style>
 </head>
 <body>
 
-<div class="instructions">
-  Upload images (JPG, PNG, TIFF). Drag to move. Use the bottom-right handle to resize.
-</div>
+    <div class="instructions">
+        Upload images. Drag to move. Use the bottom-right handle to resize.
+    </div>
 
-<!-- The A4 Page -->
-<div class="page-container" id="page">
-  <!-- Top 3/4: Image Drop Zone -->
-  <div class="image-zone" id="imageZone">
-    <!-- Images will be injected here -->
-  </div>
+    <!-- The A4 Page -->
+    <div class="page-container" id="page">
+        <!-- Top 3/4: Image Drop Zone -->
+        <div class="image-zone" id="imageZone">
+            <!-- Images will be injected here -->
+        </div>
 
-  <!-- Bottom 1/4: Notes -->
-  <div class="writing-zone">
-    <!-- Lines are generated by JS -->
-  </div>
-</div>
+        <!-- Bottom 1/4: Notes -->
+        <div class="writing-zone">
+            <!-- Lines generated as DIVs -->
+        </div>
+    </div>
 
-<!-- Controls -->
-<div class="controls">
-  <div class="input-group">
-    <label for="lineCount">Lines:</label>
-    <input type="number" id="lineCount" value="8" min="0" max="25">
-  </div>
+    <!-- Controls -->
+    <div class="controls">
+        <div class="input-group">
+            <label for="lineCount">Lines:</label>
+            <input type="number" id="lineCount" value="8" min="0" max="25">
+        </div>
 
-  <input type="file" id="fileInput" accept="image/*,.tif,.tiff" multiple>
-  <button class="btn" onclick="document.getElementById('fileInput').click()">
-    <span>📷</span> Add Images
-  </button>
-  <button class="btn print-btn" onclick="window.print()">
-    <span>🖨️</span> Print
-  </button>
-</div>
+        <input type="file" id="fileInput" accept="image/*,.tif,.tiff" multiple>
+        
+        <button class="btn" onclick="document.getElementById('fileInput').click()">
+            <span>📷</span> Add
+        </button>
+        <button class="btn auto-btn" onclick="autoAlignImages()">
+            <span>✨</span> Auto Align
+        </button>
+        <button class="btn print-btn" onclick="window.print()">
+            <span>🖨️</span> Print
+        </button>
+    </div>
 
-<script>
-  const fileInput = document.getElementById('fileInput');
-  const imageZone = document.getElementById('imageZone');
-  const writingZone = document.querySelector('.writing-zone');
-  const lineCountInput = document.getElementById('lineCount');
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const imageZone = document.getElementById('imageZone');
+        const writingZone = document.querySelector('.writing-zone');
+        const lineCountInput = document.getElementById('lineCount');
+        
+        // --- Line Customization (Using DIVs for Print Safety) ---
+        function updateLines() {
+            const count = parseInt(lineCountInput.value) || 0;
+            const LINE_HEIGHT_MM = 10; 
+            const PADDING_TOP_PX = 20; 
+            
+            writingZone.innerHTML = ''; // Clear existing
+            
+            if (count > 0) {
+                // Set container height
+                writingZone.style.height = `calc(${count * LINE_HEIGHT_MM}mm + ${PADDING_TOP_PX}px)`;
+                
+                // Add top spacing
+                const spacer = document.createElement('div');
+                spacer.style.height = `${PADDING_TOP_PX}px`;
+                spacer.style.width = '100%';
+                writingZone.appendChild(spacer);
 
-  // --- Line Customization ---
-  function updateLines() {
-    const count = parseInt(lineCountInput.value) || 0;
-    const LINE_HEIGHT_MM = 10; // Fixed comfortable writing height (1cm)
-    const PADDING_TOP_PX = 20; // Matches CSS padding
-    const PADDING_BOTTOM_PX = 20;
-
-    if (count <= 0) {
-      writingZone.style.height = `${PADDING_TOP_PX + PADDING_BOTTOM_PX}px`;
-      writingZone.style.backgroundImage = 'none';
-      return;
-    }
-
-    // Calculate height: (Lines * Height) + Padding
-    // We mix units here using calc() for precision
-    writingZone.style.height = `calc(${count * LINE_HEIGHT_MM}mm + ${PADDING_TOP_PX + PADDING_BOTTOM_PX}px)`;
-
-    // Create the line gradient
-    writingZone.style.backgroundImage = `linear-gradient(to bottom, transparent calc(100% - 1px), var(--line-color) 100%)`;
-
-    // Set the size of one "row" to 10mm
-    writingZone.style.backgroundSize = `100% ${LINE_HEIGHT_MM}mm`;
-
-    // Offset the background to start after the top padding
-    writingZone.style.backgroundPosition = `0 ${PADDING_TOP_PX}px`;
-  }
-
-  lineCountInput.addEventListener('input', updateLines);
-  lineCountInput.addEventListener('change', updateLines);
-
-  // Initialize lines immediately
-  updateLines();
-
-  // --- File Handling ---
-
-  fileInput.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files);
-
-    for (const file of files) {
-      try {
-        const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-        let imageUrl;
-
-        if (file.type === 'image/tiff' || file.name.toLowerCase().endsWith('.tif') || file.name.toLowerCase().endsWith('.tiff')) {
-          imageUrl = await processTiff(file);
-        } else {
-          imageUrl = URL.createObjectURL(file);
+                // Create individual line elements
+                for (let i = 0; i < count; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'line-item';
+                    line.style.height = `${LINE_HEIGHT_MM}mm`;
+                    writingZone.appendChild(line);
+                }
+            } else {
+                writingZone.style.height = `${PADDING_TOP_PX}px`;
+            }
         }
 
-        createImageElement(imageUrl, fileName);
-      } catch (err) {
-        console.error("Error processing file:", file.name, err);
-        alert(`Could not load ${file.name}. Ensure it is a valid image.`);
-      }
-    }
-    // Reset input so same file can be selected again if deleted
-    fileInput.value = '';
-  });
+        lineCountInput.addEventListener('input', updateLines);
+        lineCountInput.addEventListener('change', updateLines);
+        updateLines();
 
-  // Use UTIF.js to decode TIFF and draw to a hidden canvas, then convert to DataURL
-  function processTiff(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const buffer = e.target.result;
-          const ifds = UTIF.decode(buffer);
-          if (!ifds || ifds.length === 0) throw new Error("Invalid TIFF");
+        // --- Auto Align Logic ---
+        function autoAlignImages() {
+            const items = Array.from(document.querySelectorAll('.draggable-item'));
+            if (items.length === 0) return;
 
-          UTIF.decodeImage(buffer, ifds[0]);
-          const rgba = UTIF.toRGBA8(ifds[0]);
-
-          const canvas = document.createElement("canvas");
-          canvas.width = ifds[0].width;
-          canvas.height = ifds[0].height;
-
-          const ctx = canvas.getContext("2d");
-          const imageData = ctx.createImageData(canvas.width, canvas.height);
-
-          // Copy UTIF rgba to canvas imageData
-          for (let i = 0; i < rgba.length; i++) {
-            imageData.data[i] = rgba[i];
-          }
-
-          ctx.putImageData(imageData, 0, 0);
-          resolve(canvas.toDataURL("image/png"));
-        } catch (err) {
-          reject(err);
+            const zoneW = imageZone.offsetWidth;
+            const zoneH = imageZone.offsetHeight;
+            const padding = 10; // Gap between images
+            
+            // Calculate grid dimensions
+            // Try to keep it somewhat square, favoring width
+            const cols = Math.ceil(Math.sqrt(items.length));
+            const rows = Math.ceil(items.length / cols);
+            
+            const cellW = (zoneW - (padding * (cols + 1))) / cols;
+            const cellH = (zoneH - (padding * (rows + 1))) / rows;
+            
+            items.forEach((item, index) => {
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                
+                const left = padding + col * (cellW + padding);
+                const top = padding + row * (cellH + padding);
+                
+                // Animate position
+                item.style.transition = 'all 0.3s ease';
+                item.style.left = `${left}px`;
+                item.style.top = `${top}px`;
+                
+                // Resize logic: Fit inside cell while maintaining aspect ratio
+                const img = item.querySelector('img');
+                
+                // We default to filling width, but constrain by height if needed
+                let newWidth = cellW;
+                
+                // If the image is loaded, we can check aspect ratio to prevent vertical overflow
+                if (img.naturalWidth && img.naturalHeight) {
+                    const aspect = img.naturalWidth / img.naturalHeight;
+                    const estimatedHeight = newWidth / aspect;
+                    
+                    if (estimatedHeight > cellH) {
+                        // Too tall, constrain by height
+                        newWidth = cellH * aspect;
+                    }
+                }
+                
+                item.style.width = `${newWidth}px`;
+                
+                // Remove transition after animation so dragging isn't laggy
+                setTimeout(() => {
+                    item.style.transition = '';
+                }, 350);
+            });
         }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-  }
 
-  function createImageElement(src, name) {
-    const wrapper = document.createElement('div');
-    wrapper.classList.add('draggable-item');
+        // --- File Handling ---
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                try {
+                    const fileName = file.name.replace(/\.[^/.]+$/, ""); 
+                    let imageUrl;
 
-    // Random initial placement (within bounds roughly)
-    wrapper.style.left = '20px';
-    wrapper.style.top = '20px';
-    wrapper.style.width = '200px'; // Default width
+                    if (file.type === 'image/tiff' || file.name.toLowerCase().endsWith('.tif') || file.name.toLowerCase().endsWith('.tiff')) {
+                        imageUrl = await processTiff(file);
+                    } else {
+                        imageUrl = URL.createObjectURL(file);
+                    }
+                    createImageElement(imageUrl, fileName);
+                } catch (err) {
+                    console.error(err);
+                    alert(`Error loading ${file.name}`);
+                }
+            }
+            fileInput.value = '';
+        });
 
-    const img = document.createElement('img');
-    img.src = src;
-    img.draggable = false; // Disable native drag to use our custom logic
+        // TIFF Support
+        function processTiff(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const buffer = e.target.result;
+                        const ifds = UTIF.decode(buffer);
+                        if (!ifds || ifds.length === 0) throw new Error("Invalid TIFF");
+                        UTIF.decodeImage(buffer, ifds[0]);
+                        const rgba = UTIF.toRGBA8(ifds[0]);
+                        const canvas = document.createElement("canvas");
+                        canvas.width = ifds[0].width;
+                        canvas.height = ifds[0].height;
+                        const ctx = canvas.getContext("2d");
+                        const imageData = ctx.createImageData(canvas.width, canvas.height);
+                        for (let i = 0; i < rgba.length; i++) imageData.data[i] = rgba[i];
+                        ctx.putImageData(imageData, 0, 0);
+                        resolve(canvas.toDataURL("image/png"));
+                    } catch (err) { reject(err); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
-    const caption = document.createElement('div');
-    caption.classList.add('image-caption');
-    caption.textContent = name;
+        // --- Item Creation & Interaction ---
+        function createImageElement(src, name) {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('draggable-item', 'active'); // Start active
+            
+            wrapper.style.left = '20px';
+            wrapper.style.top = '20px';
+            wrapper.style.width = '200px'; 
 
-    const resizeHandle = document.createElement('div');
-    resizeHandle.classList.add('resize-handle');
+            wrapper.innerHTML = `
+                <img src="${src}" draggable="false">
+                <div class="image-caption">${name}</div>
+                <div class="resize-handle"></div>
+                <div class="delete-btn">×</div>
+            `;
 
-    const deleteBtn = document.createElement('div');
-    deleteBtn.classList.add('delete-btn');
-    deleteBtn.innerHTML = '×';
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation(); // Prevent drag start
-      wrapper.remove();
-    };
+            // Delete logic
+            wrapper.querySelector('.delete-btn').addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                wrapper.remove();
+            });
+            wrapper.querySelector('.delete-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                wrapper.remove();
+            });
 
-    wrapper.appendChild(img);
-    wrapper.appendChild(caption);
-    wrapper.appendChild(resizeHandle);
-    wrapper.appendChild(deleteBtn);
-    imageZone.appendChild(wrapper);
+            imageZone.appendChild(wrapper);
+            makeInteractive(wrapper);
+            
+            // Auto align if user wants, or just bring to front
+            bringToFront(wrapper);
+        }
 
-    // Activate drag/resize logic for this element
-    makeInteractive(wrapper, resizeHandle);
-  }
+        function makeInteractive(element) {
+            const handle = element.querySelector('.resize-handle');
+            let isDragging = false;
+            let isResizing = false;
+            let startX, startY, initialLeft, initialTop, initialWidth;
 
-  // --- Drag and Resize Logic (Mouse & Touch) ---
+            // --- Selection Logic ---
+            element.addEventListener('mousedown', () => activate(element));
+            element.addEventListener('touchstart', () => activate(element));
 
-  function makeInteractive(element, handle) {
-    let isDragging = false;
-    let isResizing = false;
-    let startX, startY, initialLeft, initialTop, initialWidth, initialHeight;
+            function activate(el) {
+                document.querySelectorAll('.draggable-item').forEach(i => i.classList.remove('active'));
+                el.classList.add('active');
+                bringToFront(el);
+            }
 
-    // --- Mouse Events ---
+            // --- Mouse Events ---
+            element.addEventListener('mousedown', (e) => {
+                if(e.target === handle || e.target.classList.contains('delete-btn')) return;
+                startDrag(e.clientX, e.clientY);
+            });
 
-    element.addEventListener('mousedown', startDrag);
-    handle.addEventListener('mousedown', startResize);
+            handle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                startResize(e.clientX, e.clientY);
+            });
 
-    // --- Touch Events ---
+            // --- Touch Events ---
+            element.addEventListener('touchstart', (e) => {
+                if(e.target === handle || e.target.classList.contains('delete-btn')) return;
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
+                // Prevent scrolling while dragging image
+                if(e.target.tagName !== 'INPUT') e.preventDefault(); 
+            }, { passive: false });
 
-    element.addEventListener('touchstart', (e) => {
-      // If touching the handle, ignore drag logic
-      if (e.target === handle) return;
-      startDrag(e.touches[0]);
-      e.preventDefault(); // Prevent scroll
-    }, { passive: false });
-
-    handle.addEventListener('touchstart', (e) => {
-      startResize(e.touches[0]);
-      e.preventDefault();
-    }, { passive: false });
+            handle.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                startResize(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault(); 
+            }, { passive: false });
 
 
-    function startDrag(e) {
-      // Ignore if clicking delete button or handle (though handle has its own listener)
-      if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+            function startDrag(x, y) {
+                isDragging = true;
+                startX = x;
+                startY = y;
+                initialLeft = element.offsetLeft;
+                initialTop = element.offsetTop;
+                
+                document.addEventListener('mousemove', onDragMove);
+                document.addEventListener('mouseup', stopInteraction);
+                document.addEventListener('touchmove', onTouchDragMove, { passive: false });
+                document.addEventListener('touchend', stopInteraction);
+            }
 
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      initialLeft = element.offsetLeft;
-      initialTop = element.offsetTop;
+            function startResize(x, y) {
+                isResizing = true;
+                startX = x;
+                initialWidth = element.offsetWidth;
+                
+                document.addEventListener('mousemove', onResizeMove);
+                document.addEventListener('mouseup', stopInteraction);
+                document.addEventListener('touchmove', onTouchResizeMove, { passive: false });
+                document.addEventListener('touchend', stopInteraction);
+            }
 
-      // Bring to front
-      bringToFront(element);
+            function onDragMove(e) { move(e.clientX, e.clientY); }
+            function onTouchDragMove(e) { 
+                move(e.touches[0].clientX, e.touches[0].clientY); 
+            }
 
-      document.addEventListener('mousemove', onDrag);
-      document.addEventListener('mouseup', stopInteraction);
-      document.addEventListener('touchmove', onTouchDrag, { passive: false });
-      document.addEventListener('touchend', stopInteraction);
-    }
+            function move(x, y) {
+                if (!isDragging) return;
+                const dx = x - startX;
+                const dy = y - startY;
+                element.style.left = `${initialLeft + dx}px`;
+                element.style.top = `${initialTop + dy}px`;
+            }
 
-    function startResize(e) {
-      e.stopPropagation(); // Stop drag from firing
-      isResizing = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      initialWidth = element.offsetWidth;
-      initialHeight = element.offsetHeight; // Note: height is auto, but we can read current px
+            function onResizeMove(e) { resize(e.clientX); }
+            function onTouchResizeMove(e) { resize(e.touches[0].clientX); }
 
-      document.addEventListener('mousemove', onResize);
-      document.addEventListener('mouseup', stopInteraction);
-      document.addEventListener('touchmove', onTouchResize, { passive: false });
-      document.addEventListener('touchend', stopInteraction);
-    }
+            function resize(x) {
+                if (!isResizing) return;
+                const dx = x - startX;
+                const newWidth = Math.max(50, initialWidth + dx);
+                element.style.width = `${newWidth}px`;
+            }
 
-    function onDrag(e) {
-      if (!isDragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+            function stopInteraction() {
+                isDragging = false;
+                isResizing = false;
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('mouseup', stopInteraction);
+                document.removeEventListener('touchmove', onTouchDragMove);
+                document.removeEventListener('touchend', stopInteraction);
+                document.removeEventListener('mousemove', onResizeMove);
+                document.removeEventListener('touchmove', onTouchResizeMove);
+            }
+        }
 
-      // Constrain to imageZone
-      let newLeft = initialLeft + dx;
-      let newTop = initialTop + dy;
-
-      // Simple bounds checking
-      const maxLeft = imageZone.offsetWidth - element.offsetWidth;
-      const maxTop = imageZone.offsetHeight - element.offsetHeight;
-
-      // Allow slight overflow but generally keep inside
-      element.style.left = `${newLeft}px`;
-      element.style.top = `${newTop}px`;
-    }
-
-    function onResize(e) {
-      if (!isResizing) return;
-      const dx = e.clientX - startX;
-      // We mainly resize width and let height auto-scale to preserve aspect ratio
-      // But we need to ensure the caption doesn't break logic
-
-      const newWidth = Math.max(50, initialWidth + dx); // Min width 50px
-      element.style.width = `${newWidth}px`;
-    }
-
-    // --- Touch Adapters ---
-    function onTouchDrag(e) { onDrag(e.touches[0]); }
-    function onTouchResize(e) { onResize(e.touches[0]); }
-
-    function stopInteraction() {
-      isDragging = false;
-      isResizing = false;
-      document.removeEventListener('mousemove', onDrag);
-      document.removeEventListener('mouseup', stopInteraction);
-      document.removeEventListener('touchmove', onTouchDrag);
-      document.removeEventListener('touchend', stopInteraction);
-      document.removeEventListener('mousemove', onResize);
-      document.removeEventListener('touchmove', onTouchResize);
-    }
-  }
-
-  function bringToFront(el) {
-    // Find highest z-index
-    const items = document.querySelectorAll('.draggable-item');
-    let maxZ = 0;
-    items.forEach(item => {
-      const z = parseInt(window.getComputedStyle(item).zIndex) || 0;
-      if (z > maxZ) maxZ = z;
-    });
-    el.style.zIndex = maxZ + 1;
-  }
-
-  // Adjust scale on load for mobile
-  window.addEventListener('load', () => {
-    if(window.innerWidth < 850) {
-      // Initial check to ensure view is centered/visible
-    }
-  });
-
-</script>
+        function bringToFront(el) {
+            const items = document.querySelectorAll('.draggable-item');
+            let maxZ = 0;
+            items.forEach(item => {
+                const z = parseInt(window.getComputedStyle(item).zIndex) || 0;
+                if (z > maxZ) maxZ = z;
+            });
+            el.style.zIndex = maxZ + 1;
+        }
+    </script>
 </body>
 </html>
